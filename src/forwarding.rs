@@ -38,6 +38,7 @@ pub async fn forward(forwardings: Vec<Forwarding>) {
         let mut handles = Vec::with_capacity(10);
         for f in forwardings.iter() {
             if f.ports.len() > 0 {
+                check_ssh_connection(f).await;
                 for p in f.ports.iter() {
                     match bind_local_addr(&p).await {
                         Ok(listener) => {
@@ -67,8 +68,8 @@ pub async fn forward(forwardings: Vec<Forwarding>) {
 async fn listen_local(listener: Async<TcpListener>, f: Forwarding, p: Port) ->
 JoinHandle<Result<(), ForwardingError>> {
     let h: JoinHandle<Result<(), ForwardingError>> = tokio::spawn(async move {
-        println!("[{:7}] [{:25}] [0.0.0.0:{:<5}] <=> [{:>15}:{:<5}]", "等待连接", p.label, p.local_port, p
-            .remote_host, p.remote_port);
+        println!("[{:7}] [{:25}] [0.0.0.0:{:<5}] <=> [{:>15}:{:<5}] <=> [{:>15}:{:<5}]", "等待连接", p.label, p
+            .local_port, f.ssh_host, f.ssh_port, p.remote_host, p.remote_port);
         loop {
             match listener.accept().await {
                 Ok((local_stream, addr)) => {
@@ -78,12 +79,7 @@ JoinHandle<Result<(), ForwardingError>> {
                                 Ok(channel) => {
                                     println!("[{:7}] {:15} <=> 0.0.0.0:{:<5} <=> {:>15}:{:<5}",
                                              "已连接", addr, p.local_port, p.remote_host, p.remote_port);
-                                    match handle_local_connect(local_stream, channel).await {
-                                        Err(e) => {
-                                            return Err(e);
-                                        }
-                                        _ => {}
-                                    }
+                                    handle_local_connect(local_stream, channel).await;
                                 }
                                 Err(e) => {
                                     return Err(e);
@@ -96,8 +92,7 @@ JoinHandle<Result<(), ForwardingError>> {
                     }
                 }
                 Err(e) => {
-                    return Err(ForwardingError::ListeningError(format!("[{:7}] [{:25}] [0.0.0\
-                    .0:{:<5}] [{e}]", "监听异常", p.label, p.local_port)));
+                    return Err(ForwardingError::ListeningError(format!("[{:7}] [{:25}] [0.0.0.0:{:<5}] [{e}]", "监听异常", p.label, p.local_port)));
                 }
             }
         }
@@ -128,7 +123,7 @@ async fn create_session(f: &Forwarding) -> Result<AsyncSession<TcpStream>, Forwa
         .ssh_host.as_str()).unwrap()), f.ssh_port)).or(
         async {
             Timer::after(Duration::from_secs(5)).await;
-            Err(Error::new(std::io::ErrorKind::NotFound, format!("[{:7}] [{:>15}:{:<5}] by [{}/{}]",
+            Err(Error::new(std::io::ErrorKind::NotFound, format!("[{:7}] [{:>15}:{:<5}] by [{} / {}]",
                                                                  "连接服务器失败", f.ssh_host, f.ssh_port, f.ssh_username, f.ssh_password)))
         }
     ).await {
@@ -139,7 +134,7 @@ async fn create_session(f: &Forwarding) -> Result<AsyncSession<TcpStream>, Forwa
                 } else {
                     if let Err(e) = session.userauth_password(f.ssh_username.as_str(), f.ssh_password
                         .as_str()).await {
-                        Err(ForwardingError::SshError(format!("[{:7}] [{:>15}:{:<5}] by [{}/{}] [{e}]", "验证失败", f.ssh_host, f.ssh_port, f.ssh_username, f.ssh_password)))
+                        Err(ForwardingError::SshError(format!("[{:7}] [{:>15}:{:<5}] by [{} / {}] [{e}]", "验证失败", f.ssh_host, f.ssh_port, f.ssh_username, f.ssh_password)))
                     } else {
                         Ok(session)
                     }
@@ -166,7 +161,7 @@ async fn create_channel(session: &AsyncSession<TcpStream>, p: &Port) -> Result<A
     }
 }
 
-async fn handle_local_connect(mut local_stream: Async<TcpStream>, mut channel: AsyncChannel<TcpStream>) -> Result<(), ForwardingError> {
+async fn handle_local_connect(mut local_stream: Async<TcpStream>, mut channel: AsyncChannel<TcpStream>) {
     tokio::spawn(async move {
         let mut local_buf = [0; 1024];
         let mut channel_buf = [0; 1024];
@@ -175,7 +170,7 @@ async fn handle_local_connect(mut local_stream: Async<TcpStream>, mut channel: A
                 l = local_stream.read(&mut local_buf) => match l {
                     Ok(n) if n > 0 => {
                        if let Err(e) =  channel.write(&local_buf[..n]).await{
-                            eprintln!("写入远程通道异常 {}", e);
+                            eprintln!("写入远程通道异常 {e}");
                             break;
                         }
                     },
@@ -184,7 +179,7 @@ async fn handle_local_connect(mut local_stream: Async<TcpStream>, mut channel: A
                 c = channel.read(&mut channel_buf) => match c {
                     Ok(n) if n > 0 => {
                        if let Err(e) =  local_stream.write(&channel_buf[..n]).await{
-                            eprintln!("写入本地通道异常 {}", e);
+                            eprintln!("写入本地通道异常 {e}");
                             break;
                         }
                     },
@@ -193,6 +188,5 @@ async fn handle_local_connect(mut local_stream: Async<TcpStream>, mut channel: A
             }
         }
     });
-    Ok(())
 }
 
