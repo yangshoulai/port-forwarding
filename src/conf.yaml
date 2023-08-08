@@ -1,0 +1,86 @@
+# 端口映射
+remote_mappings:
+  - ssh_host: 132.252.33.58
+    ssh_port: 22
+    ssh_username: appcms
+    ssh_password: CmsApp@2023
+    ports:
+      - label: CMS Database (1)
+        remote_host: 132.252.135.61
+        remote_port: 1621
+        local_port: 1621
+      - label: CMS Database (2)
+        remote_host: 132.252.135.62
+        remote_port: 1621
+        local_port: 1611
+  - ssh_host: 132.252.33.14
+    ssh_port: 22
+    ssh_username: ges
+    ssh_password: fei!uh6@6Q
+    ports:
+      - label: CSS_ORACLE(1)
+        remote_host: 132.252.34.37
+        remote_port: 1621
+        local_port: 3438
+      - label: CSS_ORACLE(2)
+        remote_host: 132.252.34.38
+        remote_port: 1621
+        local_port: 3437
+      - label: CTG_MQ_TEST
+        remote_host: 132.252.27.28
+        remote_port: 9876
+        local_port: 9876
+  - ssh_host: 132.252.33.36
+    ssh_port: 22
+    ssh_username: jsyx
+    ssh_password: (JO1QeeTbDa#
+    ports:
+      - label: Collaboration Database
+        remote_host: 132.252.34.59
+        remote_port: 8921
+        local_port: 8921
+  - ssh_host: 132.252.33.17
+    ssh_port: 22
+    ssh_username: ges
+    ssh_password: fei!uh2@3M
+    ports:
+      - label: NIEDP Database (1)
+        remote_host: 132.252.135.13
+        remote_port: 1621
+        local_port: 21621
+      - label: NIEDP Database (2)
+        remote_host: 132.252.135.14
+        remote_port: 1621
+        local_port: 41621
+      - label: CSS Database (1)
+        remote_host: 132.252.34.37
+        remote_port: 1621
+        local_port: 31621
+      - label: CSS Database (2)
+        remote_host: 132.252.34.38
+        remote_port: 1621
+        local_port: 31622
+      - label: CSS Database PostgreSQL
+        remote_host: 132.254.21.27
+        remote_port: 18921
+        local_port: 18921
+      - label: CSS2 Database (1)
+        remote_host: 132.252.3.134
+        remote_port: 1621
+        local_port: 38001
+      - label: CSS2 Database (2)
+        remote_host: 132.252.3.135
+        remote_port: 1621
+        local_port: 38002
+      - label: CSSAPP Database
+        remote_host: 132.254.21.28
+        remote_port: 18922
+        local_port: 18922
+      - label: CSS NIEDP Database
+        remote_host: 132.254.21.30
+        remote_port: 18924
+        local_port: 18924
+      - label: CSS Redis Cluster (1)
+        remote_host: 132.252.33.29
+        remote_port: 16379
+        local_port: 16379

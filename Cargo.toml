@@ -1,0 +1,31 @@
+[package]
+name = "develop-tools"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.8.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+#ssh2 = "0.9.4"
+tokio = { version = "1.29.1", features = ["full"]}
+#async-std = "1.12.0"
+#async-ssh2 = "0.1.2-beta"
+# russh = "0.37.1"
+async-trait = "0.1.72"
+# russh-keys = "0.37.1"
+# anyhow = "1.0.72"
+# openssh = "0.9.9"
+
+ssh_jumper = "0.4.0"
+async-io = "1.13.0"
+async-ssh2-lite = "0.2.2"
+futures = "0.3.28"
+futures-lite = "1.13.0"
+dirs = "5.0.1"
+platform-dirs = "0.3.0"
+
+
+
