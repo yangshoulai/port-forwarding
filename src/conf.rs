@@ -1,7 +1,10 @@
-use std::{fs, io};
-use serde::{Serialize, Deserialize};
-use serde_yaml;
+use std::fs;
+use std::fmt::{Debug, Display};
+
 use platform_dirs::AppDirs;
+use serde::{Deserialize, Serialize};
+use serde_yaml;
+
 use crate::error::ConfFileNotFoundError;
 use crate::forwarding::Forwarding;
 
@@ -14,51 +17,39 @@ pub struct Conf {
 }
 
 pub async fn get_conf_file() -> Result<String, ConfFileNotFoundError> {
-    // 1. 程序执行目录下 conf.yaml
-    let p = std::env::current_exe().unwrap();
-    let p = p.parent().unwrap();
-    let p = p.join(CONF_FILE_NAME);
-    if p.exists() {
-        return Ok(p.into_os_string().into_string().unwrap());
+    if cfg!(debug_assertions) {
+        // 调试模式 获取src/conf.yaml
+        let p = std::env::current_dir().unwrap().join("src").join(CONF_FILE_NAME);
+        if p.exists() {
+            return Ok(p.into_os_string().into_string().unwrap());
+        }
+        return Err(ConfFileNotFoundError::new("没有找到配置文件"));
+    } else {
+        // 1. 程序执行目录下 conf.yaml
+        let p = std::env::current_exe().unwrap();
+        let p = p.parent().unwrap();
+        let p = p.join(CONF_FILE_NAME);
+        let f1 = p.clone();
+        if p.exists() {
+            return Ok(p.into_os_string().into_string().unwrap());
+        }
+        // 2. 获取用户目录 ~/.develop-tools/conf.yaml
+        let p = get_app_dirs().config_dir.join(CONF_FILE_NAME);
+        let f2 = p.clone();
+        if p.exists() {
+            return Ok(p.into_os_string().into_string().unwrap());
+        }
+        return Err(ConfFileNotFoundError::new(format!("没有找到配置文件，{} -> {}", f1.display(), f2
+            .display())
+            .as_str()));
     }
-    // 2. 获取用户目录 ~/.develop-tools/conf.yaml
-    let p = get_app_dirs().config_dir.join(CONF_FILE_NAME);
-    if p.exists() {
-        return Ok(p.into_os_string().into_string().unwrap());
-    }
-
-    // 3. 获取src/conf.yaml
-    let p = std::env::current_dir().unwrap().join("src").join(CONF_FILE_NAME);
-    if p.exists() {
-        return Ok(p.into_os_string().into_string().unwrap());
-    }
-
-    return Err(ConfFileNotFoundError::new("配置文件无法获取"));
-
-
-
 }
 
-pub async fn load<'a>(filename: &str) -> Result<Conf, String> {
-    let f = fs::read_to_string(filename);
-    if let Ok(y) = f {
-        let r: serde_yaml::Result<Conf> = serde_yaml::from_str(&y);
-        if let Ok(c) = r {
-            Ok(c)
-        } else {
-            println!("{}", r.err().unwrap());
-            Err("配置文件解析出错".to_string())
-        }
-    } else {
-        let k: io::Error = f.err().unwrap();
-        match k.kind() {
-            io::ErrorKind::NotFound => Err(String::from("配置文件不存在")),
-            _ => {
-                println!("{k}");
-                Err(String::from("配置文件加载出错"))
-            }
-        }
-    }
+
+pub async fn load<'a>(filename: &str) -> Result<Conf, anyhow::Error> {
+    let f = fs::read_to_string(filename)?;
+    let r = serde_yaml::from_str(&f)?;
+    Ok(r)
 }
 
 pub fn get_app_dirs() -> AppDirs {
